@@ -66,6 +66,11 @@ main{padding:14px}
 .st select{font-size:12px;padding:11px 2px;text-align:center;text-align-last:center;color:#8A949E}
 .st input.beat{border-color:#33513F;background:#182219}
 .st input.miss{border-color:#5A3C20}
+.st input.bad{border-color:#C6613C;background:#2A1A14}
+.wrn{font-size:11.5px;color:#DE9A6A;background:#2A1E14;border:1px solid #5A3C20;border-radius:7px;padding:7px 9px;margin:-2px 0 8px;line-height:1.4}
+.wrn[hidden]{display:none}
+.eds{font-size:12.5px;color:#E0B03A;font-weight:600;margin:12px 0 7px;padding-top:9px;border-top:1px solid #2E3740}
+.eds:first-of-type{border-top:none;padding-top:0}
 .st input::placeholder{font-weight:400;font-size:12.5px;color:#5C666F}
 .xb{background:none;border:1px solid #2E3740;border-radius:7px;color:#5C666F;font-size:15px;padding:10px 0}
 .ft{display:flex;gap:7px;margin-top:4px;flex-wrap:wrap}
@@ -359,6 +364,7 @@ var SEED={date:START_DEFAULT+864e5,day:"Day A",block:0,bw:"87",week:1,entries:[
    ============================================================ */
 var db={v:2,sessions:[SEED],block:0,bwAuto:true,bw:"87",steps:"",draft:{},tab:0,start:START_DEFAULT,notes:""};
 var tab=0, open=-1, undoRec=null, mode="starting", note="", setFn=null, getFn=null, exView=null;
+var editS=-1, editBuf=null;
 var rest={end:0,len:0,ex:""}, tick=null, sesStart=0, ac=null, saveT=null;
 
 function E(i){return document.getElementById(i);}
@@ -393,6 +399,19 @@ function topW(e){var b=0,i;for(i=0;i<e.sets.length;i++){var w=parseFloat(e.sets[
 function loW(e){var b=null,i;for(i=0;i<e.sets.length;i++){var w=parseFloat(e.sets[i].w)||0;
   if(w>0&&(b===null||w<b))b=w;}return b;}
 function totR(e){var t=0,i;for(i=0;i<e.sets.length;i++)t+=parseInt(e.sets[i].r,10)||0;return t;}
+/* average reps-in-reserve for a session, null unless at least two sets carry one */
+function avgRIR(e){var s=0,n=0,i;for(i=0;i<e.sets.length;i++){var q=e.sets[i].q;
+  if(q!==""&&q!==undefined&&q!==null){s+=parseInt(q,10)||0;n++;}}
+  return n>=2?s/n:null;}
+/* does this look like a fat finger rather than a set */
+function odd(nm,w,r){
+  var W=parseFloat(w)||0,R=parseInt(r,10)||0,h=hist(nm),best=0,i;
+  for(i=0;i<h.length;i++){var t=topW(h[i].e);if(t>best)best=t;}
+  if(r!==""&&R>100)return R+" reps? Check that before it becomes your record.";
+  if(W>500)return fmt(W)+" kg looks like a slip.";
+  if(best>0&&W>best*2.5&&W-best>20)
+    return fmt(W)+" kg is more than double the "+fmt(best)+" kg you have ever done here. Check it.";
+  return "";}
 function minR(e){var b=null,i;for(i=0;i<e.sets.length;i++){var r=parseInt(e.sets[i].r,10)||0;
   if(r>0&&(b===null||r<b))b=r;}return b;}
 
@@ -450,6 +469,24 @@ function presc(ex,b,wk){
   var last=h[h.length-1].e,tw=topW(last),mr=minR(last),full=(last.sets.length>=n);
   var allTop=full&&hi!==null;
   var j;if(allTop)for(j=0;j<last.sets.length;j++)if((parseInt(last.sets[j].r,10)||0)<hi)allTop=false;
+  var ar=avgRIR(last);
+  o.rir=ar;
+
+  /* you told us it was easy: move now, do not wait for the rep target to fill up */
+  if(ar!==null&&ar>=3&&tw>0&&!ex.bw){
+    o.w=ex.inv?Math.max(0,rnd(tw-ex.i,ex.i)):rnd(tw+ex.i,ex.i);
+    o.reps=lo;o.tone="up";
+    o.head=(ex.inv?"Less help: ":"Go up: ")+fmt(o.w)+" kg x "+lo;
+    o.why="You logged about "+fmt(Math.round(ar*10)/10)+" reps still in the tank last time. That is too easy to build anything, so "+
+      (ex.inv?"the assistance comes down":"the weight goes up")+" now instead of waiting for the reps to creep up. Aim to finish sets at 1 or 2 left.";
+    return o;}
+
+  /* every set to failure and the reps still did not move: that is fatigue, not effort */
+  if(ar!==null&&ar<=0.5&&tw>0&&h.length>=2&&totR(last)<=totR(h[h.length-2].e)){
+    o.w=tw;o.reps=mr||lo;o.tone="stall";
+    o.head="Hold "+fmt(tw)+" kg, leave one rep";
+    o.why="Every set went to failure last time and the reps still did not move. That is fatigue, not effort. Same weight, stop one rep short on each set, and it will come back next session.";
+    return o;}
 
   /* stalled: same top weight three sessions running with no rep gain */
   if(h.length>=3&&tw>0){
@@ -670,6 +707,7 @@ function vDay(){
         (rm?'<div class="lt">Ramp up first: <b>'+esc(rm)+'</b></div>':'')+
         (pl?'<div class="lt">'+esc(pl)+'</div>':'')+
         (pv?'<div class="lt">Last time: <b>'+esc(wo(pv)?wo(pv)+" kg":"bodyweight")+'</b> &mdash; <b>'+esc(rp(pv))+'</b>'+
+            (P.rir!==null&&P.rir!==undefined?', about <b>'+fmt(Math.round(P.rir*10)/10)+'</b> left in the tank':'')+
             (pb?'. Best ever '+fmt(Math.round(pb))+' kg estimated max':'')+'.</div>'
            :'<div class="lt">No history yet. Today&rsquo;s numbers become the target.</div>')+
         '<div class="cue">'+esc(ex.c)+(ex.side?" Reps are per side.":"")+'</div>'+
@@ -681,7 +719,9 @@ function vDay(){
           '<input class="num" inputmode="decimal" placeholder="'+(ex.bw?"bw":"kg")+'" value="'+esc(d[j].w)+'" data-in="'+k+'_'+j+'_w">'+
           '<input class="num'+cls+'" inputmode="numeric" placeholder="'+(tgtR?String(tgtR):"reps")+'" value="'+esc(d[j].r)+'" data-in="'+k+'_'+j+'_r" id="in_'+k+'_'+j+'_r">'+
           '<select data-in="'+k+'_'+j+'_q">'+opt(d[j].q)+'</select>'+
-          '<button class="xb" data-clr="'+k+'_'+j+'">&times;</button></div>';}
+          '<button class="xb" data-clr="'+k+'_'+j+'">&times;</button></div>';
+        var wmsg=odd(ex.n,d[j].w,d[j].r);
+        h+='<div class="wrn" id="wrn_'+k+'_'+j+'"'+(wmsg?"":" hidden")+'>'+esc(wmsg)+'</div>';}
       if(c===n){
         var allTop=P.hi!==null,jj;
         for(jj=0;jj<n;jj++)if((parseInt(d[jj].r,10)||0)<P.hi)allTop=false;
@@ -712,7 +752,9 @@ function syncEx(k){
   if(ix)ix.innerHTML=(c===n?"&#10003;":(k+1));
   for(j=0;j<n;j++){var el=E("in_"+k+"_"+j+"_r");if(!el)continue;
     var cur=parseInt(d[j]&&d[j].r,10)||0;
-    el.className="num"+(cur?(P.reps&&cur>=P.reps?" beat":" miss"):"");}
+    var wmsg=odd(ex.n,d[j]&&d[j].w,d[j]&&d[j].r),wb=E("wrn_"+k+"_"+j);
+    if(wb){wb.textContent=wmsg;wb.hidden=!wmsg;}
+    el.className="num"+(wmsg?" bad":(cur?(P.reps&&cur>=P.reps?" beat":" miss"):""));}
   count();}
 
 /* ============================================================
@@ -739,11 +781,12 @@ function vCoach(){
     '<li>Stuck at the same weight and reps for three sessions? The app drops you ten percent and you rebuild. That is not failure, that is the plan.</li></ul>'+
     '<p>You never have to decide any of this. Open the exercise and the line at the top tells you the weight and the reps.</p></div>';
 
-  h+='<div class="card"><h3>RIR, the box next to your reps</h3>'+
-    '<p>Reps In Reserve - how many more you could have done when you stopped. It is optional, but log it and the numbers start telling the truth.</p><ul>'+
-    '<li><b>RIR 0</b> - nothing left, the last rep barely moved.</li>'+
-    '<li><b>RIR 1-2</b> - where almost every set should live.</li>'+
-    '<li><b>RIR 3-4</b> - too easy, add weight unless it is a warm-up or a deload.</li></ul>'+
+  h+='<div class="card"><h3>RIR, the box marked LEFT</h3>'+
+    '<p>Reps In Reserve - how many more you could have done when you racked it. It is optional, but it is the one number that changes what you are told to lift next.</p><ul>'+
+    '<li><b>0</b> - nothing left, the last rep barely moved.</li>'+
+    '<li><b>1-2</b> - where almost every set should live.</li>'+
+    '<li><b>3-4</b> - too easy.</li></ul>'+
+    '<p>Log it on two sets or more and it drives the plan: average <b>3 or more</b> and the weight goes up next session instead of waiting for the reps to creep up, which is how most people spend a month lifting too light. Average <b>0 with your reps going backwards</b> and you get told to hold the weight and leave one in the tank - that is fatigue, not effort, and grinding it makes it worse.</p>'+
     '<p>Big lifts like the squat and the Romanian deadlift: stay at 2. Cables and machines: 0 to 1 is safe.</p></div>';
 
   h+='<div class="card"><h3>Rest between sets</h3>'+
@@ -918,16 +961,41 @@ function vHistory(){
   E("ttl").textContent="History";E("sb").textContent="newest first";
   if(!db.sessions.length)return status()+'<div class="mt">Nothing filed yet.</div>';
   var h=status(),i,j;
-  for(i=db.sessions.length-1;i>=0;i--){var s=db.sessions[i];
+  for(i=db.sessions.length-1;i>=0;i--){
+    if(i===editS&&editBuf){h+=editCard(i);continue;}
+    var s=db.sessions[i];
     h+='<div class="card"><div class="ht"><div><h3>'+esc(s.day)+' &mdash; week '+(s.week||"?")+'</h3>'+
       '<div class="wn">'+new Date(s.date).toLocaleDateString()+(s.bw?" &middot; "+esc(s.bw)+" kg":"")+
       (s.dur?" &middot; "+s.dur+" min":"")+'</div></div>'+
-      '<button class="mn" style="flex:none;padding:6px 10px" data-del="'+i+'">Delete</button></div>';
+      '<div class="rw" style="flex:none"><button class="mn" style="flex:none;padding:6px 10px" data-edit="'+i+'">Edit</button>'+
+      '<button class="mn" style="flex:none;padding:6px 10px" data-del="'+i+'">Delete</button></div></div>';
     for(j=0;j<s.entries.length;j++){var e=s.entries[j],mm=meta(e.name);
       h+='<div class="hr" data-hist="'+esc(e.name)+'"><span>'+
         '<span class="mdot" style="background:'+(mm?MUS[mm.m]:"#8A949E")+'"></span>'+esc(e.name)+'</span><span class="num">'+
         (wo(e)?esc(wo(e))+" kg&nbsp;&nbsp;":"")+esc(rp(e))+'</span></div>';}
     h+='</div>';}
+  return h;}
+
+/* one session opened up for correcting a mistyped number */
+function editCard(i){
+  var s=editBuf,j,k;
+  var h='<div class="card" style="border-color:#4A3C1C"><div class="ht"><div>'+
+    '<h3>'+esc(s.day)+' &mdash; week '+(s.week||"?")+'</h3>'+
+    '<div class="wn">'+new Date(s.date).toLocaleDateString()+' &middot; fixing a number</div></div></div>'+
+    '<div class="lt" style="margin-top:6px">Empty the reps box to drop a set. Clear every set in an exercise and the exercise goes.</div>'+
+    '<div class="hd" style="margin-top:10px"><div></div><div>KG</div><div>REPS</div><div>LEFT</div><div></div></div>';
+  for(j=0;j<s.entries.length;j++){var e=s.entries[j];
+    h+='<div class="eds">'+esc(e.name)+'</div>';
+    for(k=0;k<e.sets.length;k++){
+      h+='<div class="st"><div class="sl">'+(k+1)+'</div>'+
+        '<input class="num" inputmode="decimal" placeholder="kg" value="'+esc(e.sets[k].w||"")+'" data-ein="'+j+'_'+k+'_w">'+
+        '<input class="num" inputmode="numeric" placeholder="reps" value="'+esc(e.sets[k].r||"")+'" data-ein="'+j+'_'+k+'_r">'+
+        '<select data-ein="'+j+'_'+k+'_q">'+opt(e.sets[k].q)+'</select>'+
+        '<button class="xb" data-eclr="'+j+'_'+k+'">&times;</button></div>';}}
+  h+='<div class="eds">Bodyweight that day</div>'+
+    '<input class="num" inputmode="decimal" placeholder="kg" value="'+esc(s.bw||"")+'" data-ein="bw" style="max-width:120px">'+
+    '<div class="ft" style="margin-top:12px"><button class="mn go" data-act="esave">Save changes</button>'+
+    '<button class="mn" data-act="ecancel">Cancel</button></div></div>';
   return h;}
 
 function vData(){
@@ -1019,7 +1087,7 @@ function paint(){
    15. one listener for clicks, so a button can never go dead
    ============================================================ */
 document.addEventListener("click",function(ev){
-  var el=ev.target,a=null,k,A=["tab","open","clr","copy","wipe","del","hist","swap","rest","act"];
+  var el=ev.target,a=null,k,A=["tab","open","clr","copy","wipe","del","hist","swap","rest","edit","eclr","act"];
   for(k=0;k<6&&el;k++){
     if(el.getAttribute){var i;
       for(i=0;i<A.length;i++)if(el.getAttribute("data-"+A[i])!==null){a=[A[i],el.getAttribute("data-"+A[i])];break;}
@@ -1032,7 +1100,7 @@ document.addEventListener("click",function(ev){
 function handle(kind,val){
   if(kind==="tab"){
     if(typeof tab==="number"&&val!=="0"&&val!=="1"&&val!=="2"&&hasDraft())file(true);
-    exView=null;
+    exView=null;editS=-1;editBuf=null;
     tab=(val==="h"||val==="b"||val==="c"||val==="s")?val:+val;
     open=-1;paint();window.scrollTo(0,0);save();return;}
   if(kind==="hist"){exView=val;tab="s";open=-1;paint();window.scrollTo(0,0);return;}
@@ -1051,12 +1119,30 @@ function handle(kind,val){
     for(j=0;j<n;j++){var s=pv.sets[j]||pv.sets[pv.sets.length-1];
       db.draft[nm].push({w:(s&&s.w)||"",r:(s&&s.r)||"",q:""});}
     paint();save();tst("Filled with last time - now beat it");return;}
+  if(kind==="edit"){editS=+val;editBuf=JSON.parse(JSON.stringify(db.sessions[+val]));
+    paint();window.scrollTo(0,0);return;}
+  if(kind==="eclr"){if(!editBuf)return;var pe=val.split("_");
+    editBuf.entries[+pe[0]].sets[+pe[1]]={w:"",r:"",q:""};paint();tst("Set emptied - Save to keep it");return;}
   if(kind==="del"){var s2=db.sessions[+val];
     if(!confirm("Delete this "+s2.day+" from "+new Date(s2.date).toLocaleDateString()+"?"))return;
     db.sessions.splice(+val,1);undoRec=null;paint();save();tst("Deleted");return;}
   if(kind==="act"){
     if(val==="back"){exView=null;paint();window.scrollTo(0,0);return;}
     if(val==="file"){file(false);return;}
+    if(val==="ecancel"){editS=-1;editBuf=null;paint();tst("Nothing changed");return;}
+    if(val==="esave"){
+      if(!editBuf||editS<0)return;
+      var ents=[],j2,k2;
+      for(j2=0;j2<editBuf.entries.length;j2++){var en=editBuf.entries[j2],keep=[];
+        for(k2=0;k2<en.sets.length;k2++){var st=en.sets[k2];
+          if(st.r&&parseInt(st.r,10)>0)keep.push({w:st.w||"",r:st.r,q:st.q||""});}
+        if(keep.length)ents.push({name:en.name,sets:keep});}
+      if(!ents.length){
+        if(!confirm("Every set is empty. Delete this whole session?")){return;}
+        db.sessions.splice(editS,1);editS=-1;editBuf=null;undoRec=null;
+        paint();save();tst("Session deleted");return;}
+      db.sessions[editS].entries=ents;db.sessions[editS].bw=editBuf.bw||"";
+      editS=-1;editBuf=null;paint();save();tst("Saved. Your next target is worked out from the corrected numbers.");return;}
     if(val==="skip"){stopRest();return;}
     if(val==="plus"){rest.end+=30000;count();return;}
     if(val==="undo"){if(!undoRec)return;
@@ -1107,6 +1193,10 @@ function dlFile(txt,name,type){
    16. typing
    ============================================================ */
 document.addEventListener("input",function(ev){
+  var g=ev.target.getAttribute&&ev.target.getAttribute("data-ein");
+  if(g&&editBuf){
+    if(g==="bw"){editBuf.bw=ev.target.value;return;}
+    var pg=g.split("_");editBuf.entries[+pg[0]].sets[+pg[1]][pg[2]]=ev.target.value;return;}
   var k=ev.target.getAttribute&&ev.target.getAttribute("data-in");
   if(!k||typeof tab!=="number")return;
   var p=k.split("_"),ex=PLAN[tab].x[+p[0]],nm=ex.n;
@@ -1120,13 +1210,17 @@ document.addEventListener("input",function(ev){
 
 /* a finished rep box starts the rest clock and checks for a personal record */
 document.addEventListener("change",function(ev){
+  var g=ev.target.getAttribute&&ev.target.getAttribute("data-ein");
+  if(g&&editBuf){
+    if(g==="bw"){editBuf.bw=ev.target.value;return;}
+    var pg=g.split("_");editBuf.entries[+pg[0]].sets[+pg[1]][pg[2]]=ev.target.value;return;}
   var k=ev.target.getAttribute&&ev.target.getAttribute("data-in");
   if(!k||typeof tab!=="number")return;
   var p=k.split("_");
   if(p[2]!=="r"||!ev.target.value)return;
   var ex=PLAN[tab].x[+p[0]],d=db.draft[ex.n][+p[1]];
   startRest(restFor(ex,blk()),ex.n);
-  if(!ex.bw&&!ex.inv&&d.w&&d.r){
+  if(!ex.bw&&!ex.inv&&d.w&&d.r&&!odd(ex.n,d.w,d.r)){
     var o=(parseFloat(d.w)||0)*(1+(parseInt(d.r,10)||0)/30),best=bestOrm(ex.n,false);
     if(best>0&&o>best*1.005&&!d.pr){d.pr=1;
       tst("Personal record on "+esc(ex.n)+"<br>"+fmt(d.w)+" kg x "+esc(d.r)+" beats everything you have logged.","pr");}}
