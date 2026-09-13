@@ -364,7 +364,7 @@ var SEED={date:START_DEFAULT+864e5,day:"Day A",block:0,bw:"87",week:1,entries:[
    ============================================================ */
 var db={v:2,sessions:[SEED],block:0,bwAuto:true,bw:"87",steps:"",draft:{},tab:0,start:START_DEFAULT,notes:""};
 var tab=0, open=-1, undoRec=null, mode="starting", note="", setFn=null, getFn=null, exView=null;
-var editS=-1, editBuf=null;
+var editS=-1, editBuf=null, editNew=false;
 var rest={end:0,len:0,ex:""}, tick=null, sesStart=0, ac=null, saveT=null;
 
 function E(i){return document.getElementById(i);}
@@ -959,8 +959,20 @@ function vExercise(){
    ============================================================ */
 function vHistory(){
   E("ttl").textContent="History";E("sb").textContent="newest first";
-  if(!db.sessions.length)return status()+'<div class="mt">Nothing filed yet.</div>';
   var h=status(),i,j;
+
+  if(editNew&&editBuf)h+=editCard(-1);
+  else{
+    var td=new Date(Date.now()-7*864e5),ds="",dopt="";
+    ds=td.getFullYear()+"-"+("0"+(td.getMonth()+1)).slice(-2)+"-"+("0"+td.getDate()).slice(-2);
+    for(i=0;i<PLAN.length;i++)dopt+='<option value="'+i+'">'+esc(PLAN[i].n)+'</option>';
+    h+='<div class="card"><h3>Add a session you missed</h3>'+
+      '<p>Trained but never logged it? Put it in here. It drops into the right week of your history and the charts pick it up.</p>'+
+      '<div class="rw"><select id="pday" style="flex:1">'+dopt+'</select>'+
+      '<input id="pdate" type="date" value="'+ds+'" style="flex:1"></div>'+
+      '<div class="rw" style="margin-top:8px"><button class="mn" data-act="addpast">Fill it in</button></div></div>';}
+
+  if(!db.sessions.length)return h+'<div class="mt">Nothing filed yet.</div>';
   for(i=db.sessions.length-1;i>=0;i--){
     if(i===editS&&editBuf){h+=editCard(i);continue;}
     var s=db.sessions[i];
@@ -976,13 +988,27 @@ function vHistory(){
     h+='</div>';}
   return h;}
 
-/* one session opened up for correcting a mistyped number */
+/* a blank session for a day you trained but never logged */
+/* history is read in array order, so a backdated session must sit in its real place */
+function sortSessions(){db.sessions.sort(function(a,b){return a.date-b.date;});}
+
+function blankSession(di,dt){
+  var p=PLAN[di],b=blk(),ents=[],k,j;
+  var wk=Math.max(1,Math.floor((d0(dt)-d0(db.start||START_DEFAULT))/864e5/7)+1);
+  for(k=0;k<p.x.length;k++){var n=ns(p.x[k].t[b]),sets=[];
+    for(j=0;j<n;j++)sets.push({w:"",r:"",q:""});
+    ents.push({name:p.x[k].n,sets:sets});}
+  return {date:dt,day:p.n,block:b,week:wk,bw:"",steps:"",dur:0,entries:ents};}
+
+/* one session opened up for correcting a mistyped number, or filling in a missed one */
 function editCard(i){
-  var s=editBuf,j,k;
+  var s=editBuf,j,k,isNew=(i<0);
   var h='<div class="card" style="border-color:#4A3C1C"><div class="ht"><div>'+
     '<h3>'+esc(s.day)+' &mdash; week '+(s.week||"?")+'</h3>'+
-    '<div class="wn">'+new Date(s.date).toLocaleDateString()+' &middot; fixing a number</div></div></div>'+
-    '<div class="lt" style="margin-top:6px">Empty the reps box to drop a set. Clear every set in an exercise and the exercise goes.</div>'+
+    '<div class="wn">'+new Date(s.date).toLocaleDateString()+' &middot; '+(isNew?"filling in a missed session":"fixing a number")+'</div></div></div>'+
+    '<div class="lt" style="margin-top:6px">'+(isNew
+      ?"Fill in only what you actually remember. Leave the rest empty - a guessed number is worse than a gap, because the charts will believe it."
+      :"Empty the reps box to drop a set. Clear every set in an exercise and the exercise goes.")+'</div>'+
     '<div class="hd" style="margin-top:10px"><div></div><div>KG</div><div>REPS</div><div>LEFT</div><div></div></div>';
   for(j=0;j<s.entries.length;j++){var e=s.entries[j];
     h+='<div class="eds">'+esc(e.name)+'</div>';
@@ -994,7 +1020,7 @@ function editCard(i){
         '<button class="xb" data-eclr="'+j+'_'+k+'">&times;</button></div>';}}
   h+='<div class="eds">Bodyweight that day</div>'+
     '<input class="num" inputmode="decimal" placeholder="kg" value="'+esc(s.bw||"")+'" data-ein="bw" style="max-width:120px">'+
-    '<div class="ft" style="margin-top:12px"><button class="mn go" data-act="esave">Save changes</button>'+
+    '<div class="ft" style="margin-top:12px"><button class="mn go" data-act="esave">'+(isNew?"Add this session":"Save changes")+'</button>'+
     '<button class="mn" data-act="ecancel">Cancel</button></div></div>';
   return h;}
 
@@ -1100,7 +1126,7 @@ document.addEventListener("click",function(ev){
 function handle(kind,val){
   if(kind==="tab"){
     if(typeof tab==="number"&&val!=="0"&&val!=="1"&&val!=="2"&&hasDraft())file(true);
-    exView=null;editS=-1;editBuf=null;
+    exView=null;editS=-1;editBuf=null;editNew=false;
     tab=(val==="h"||val==="b"||val==="c"||val==="s")?val:+val;
     open=-1;paint();window.scrollTo(0,0);save();return;}
   if(kind==="hist"){exView=val;tab="s";open=-1;paint();window.scrollTo(0,0);return;}
@@ -1129,14 +1155,27 @@ function handle(kind,val){
   if(kind==="act"){
     if(val==="back"){exView=null;paint();window.scrollTo(0,0);return;}
     if(val==="file"){file(false);return;}
-    if(val==="ecancel"){editS=-1;editBuf=null;paint();tst("Nothing changed");return;}
+    if(val==="addpast"){
+      var pv2=E("pdate").value;
+      if(!pv2){tst("Pick the date you trained");return;}
+      var pp=pv2.split("-"),when=new Date(+pp[0],+pp[1]-1,+pp[2],12,0,0).getTime();
+      if(when>Date.now()){tst("That date is in the future");return;}
+      editBuf=blankSession(+E("pday").value,when);editNew=true;editS=-1;
+      paint();window.scrollTo(0,0);return;}
+    if(val==="ecancel"){editS=-1;editBuf=null;editNew=false;paint();tst("Nothing changed");return;}
     if(val==="esave"){
-      if(!editBuf||editS<0)return;
+      if(!editBuf||(editS<0&&!editNew))return;
       var ents=[],j2,k2;
       for(j2=0;j2<editBuf.entries.length;j2++){var en=editBuf.entries[j2],keep=[];
         for(k2=0;k2<en.sets.length;k2++){var st=en.sets[k2];
           if(st.r&&parseInt(st.r,10)>0)keep.push({w:st.w||"",r:st.r,q:st.q||""});}
         if(keep.length)ents.push({name:en.name,sets:keep});}
+      if(editNew){
+        if(!ents.length){tst("Fill in at least one set first");return;}
+        var rec2=editBuf;rec2.entries=ents;rec2.bw=editBuf.bw||"";
+        db.sessions.push(rec2);sortSessions();
+        editNew=false;editBuf=null;paint();save();
+        tst("Added to week "+rec2.week+" with "+ents.length+" exercise"+(ents.length===1?"":"s")+".");return;}
       if(!ents.length){
         if(!confirm("Every set is empty. Delete this whole session?")){return;}
         db.sessions.splice(editS,1);editS=-1;editBuf=null;undoRec=null;
@@ -1166,8 +1205,7 @@ function handle(kind,val){
       var inc=JSON.parse(E("ri").value);if(!inc||!inc.sessions)throw 0;
       var seen={},all=db.sessions.concat(inc.sessions).filter(function(x){
         var k2=x.date+"|"+x.day;if(seen[k2])return false;seen[k2]=1;return true;});
-      all.sort(function(a3,b3){return a3.date-b3.date;});
-      db.sessions=all;paint();save();tst("Restored "+all.length+" sessions");
+      db.sessions=all;sortSessions();paint();save();tst("Restored "+all.length+" sessions");
     }catch(e){tst("Could not read that backup");}return;}
     if(val==="wipe"){if(!confirm("Delete every filed session?"))return;
       db.sessions=[];db.draft={};undoRec=null;paint();save();tst("All deleted");return;}
@@ -1248,6 +1286,7 @@ function migrate(d){
         if(s.entries[j].sets[k].q===undefined)s.entries[j].sets[k].q="";}}
   if(!d.draft)d.draft={};
   if(!d.start)d.start=START_DEFAULT;
+  d.sessions.sort(function(a,b){return a.date-b.date;});
   return d;}
 
 paint();
