@@ -188,7 +188,7 @@ var BLOCKS=[
   {n:"Strength",   w:[15,26],intent:"Heavier, fewer reps, longer rest. The goal is the number on the bar, not the burn."},
   {n:"Growth",     w:[27,39],intent:"The most sets of the year. Moderate weight, close to failure, eat enough to build."},
   {n:"Definition", w:[40,52],intent:"High reps, short rest, keep every kilo of muscle you built while you lean out."}];
-var RETIRED={"Dead bug":"core","Pallof press":"core","Hanging knee raise":"core"};
+var RETIRED={"Dead bug":"core","Hanging knee raise":"core"};
 var MUS={legs:"#E0B03A",back:"#57A97C",chest:"#6FA8C7",shoulders:"#C6613C",biceps:"#A98BC7",triceps:"#C77FA8",calves:"#7E9A55",core:"#7A848D"};
 var MUSN={legs:"legs",back:"back",chest:"chest",shoulders:"shoulders",biceps:"biceps",triceps:"triceps",calves:"calves",core:"core"};
 /* weekly working-set bands that the literature broadly agrees on */
@@ -295,7 +295,11 @@ X("Hammer curl",["3x12","3x8-10","4x10-12","3x12-15"],
 X("Overhead triceps extension",["3x12-15","3x10-12","4x12-15","3x15-20"],
   "Cable: the stack. One dumbbell held in both hands: that dumbbell.",
   "Elbows point forward and stay there. Get a full stretch behind the head - that is the whole point.","triceps",
-  {i:5,r:75,alt:"Seated dumbbell overhead extension."})]},
+  {i:5,r:75,alt:"Seated dumbbell overhead extension."}),
+X("Pallof press",["3x12/side","3x12/side","3x15/side","3x15/side"],
+  "The number on the cable stack.",
+  "Resist the cable pulling you sideways. Do not rotate.","core",
+  {i:2.5,r:60,side:true,fin:true,alt:"Side plank, 30 seconds each side."})]},
 
 {n:"Day C",s:"unilateral legs + back detail",
  wu:["5 minutes easy cardio.",
@@ -818,7 +822,7 @@ function vCoach(){
     '<li><b>Arms 18 - nine biceps, nine triceps, on all three days.</b> Both were at six before, and there was a stretch where Day A had no curls at all. Fixed.</li>'+
     '<li><b>Shoulders 9, up from 6.</b> Nothing was added - face pulls were always a rear-delt movement being counted as back, so the chart now shows them as rear delt. That is why back reads 24 there rather than 27.</li>'+
     '<li><b>Core moved home.</b> Nine sets a week of dead bugs and Pallof presses is the easiest thing to do on your floor and the worst use of paid gym time. Five minutes, three nights a week.</li></ul>'+
-    '<p><b>90 sets over 28 exercises</b>, against 87 over 29 before. Your back work is untouched, chest and arms are up, and you still walk out earlier because the core work left the building.</p></div>';
+    '<p><b>93 sets over 29 exercises</b>, against 87 over 29 before. Your back work is untouched, chest and arms are up, and you still walk out earlier because the core work left the building.</p></div>';
 
   h+='<div class="card"><h3>Keeping it under an hour</h3>'+
     '<p>Seven exercises is about 55 to 65 minutes done properly. If you are running late, in this order:</p><ul>'+
