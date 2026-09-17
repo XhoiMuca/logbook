@@ -188,6 +188,9 @@ var BLOCKS=[
   {n:"Strength",   w:[15,26],intent:"Heavier, fewer reps, longer rest. The goal is the number on the bar, not the burn."},
   {n:"Growth",     w:[27,39],intent:"The most sets of the year. Moderate weight, close to failure, eat enough to build."},
   {n:"Definition", w:[40,52],intent:"High reps, short rest, keep every kilo of muscle you built while you lean out."}];
+var RETIRED={"Seated cable row":"back","Incline dumbbell curl":"biceps","Dead bug":"core",
+  "Assisted pull-up":"back","Pallof press":"core","Straight-arm lat pulldown":"back",
+  "Hanging knee raise":"core"};
 var MUS={legs:"#E0B03A",back:"#57A97C",chest:"#6FA8C7",shoulders:"#C6613C",biceps:"#A98BC7",triceps:"#C77FA8",calves:"#7E9A55",core:"#7A848D"};
 var MUSN={legs:"legs",back:"back",chest:"chest",shoulders:"shoulders",biceps:"biceps",triceps:"triceps",calves:"calves",core:"core"};
 /* weekly working-set bands that the literature broadly agrees on */
@@ -214,27 +217,22 @@ function X(n,t,u,c,m,o){o=o||{};
     fin:!!o.fin};}                    /* finisher, droppable      */
 
 var PLAN=[
-{n:"Day A",s:"squat + vertical pull",
+{n:"Day A",s:"squat, pulldown, bench",
  wu:["5 minutes on the bike or rower until you are warm and slightly out of breath.",
      "10 bodyweight squats, 10 arm circles each way, 10 band or cable pull-aparts.",
      "First exercise only: two ramp-up sets, roughly half and three quarters of your working weight, 5 easy reps each."],
- x:[
-X("Back squat / leg press",["3x10-12","5x4-6","4x8-10","4x12-15"],
+ x:[X("Back squat / leg press",["3x10-12","5x4-6","4x8-10","4x12-15"],
   "Barbell: total on the bar INCLUDING the 20 kg bar. Leg press: total plates.",
   "Depth without the lower back rounding. Knees track over the toes.","legs",
   {i:5,r:180,bb:true,alt:"Hack squat, goblet squat, or leg press."}),
 X("Lat pulldown, wide grip",["4x8-12","5x5-8","4x8-12","4x10-15"],
   "The number on the weight stack.",
   "Bar to the collarbone in front. Elbows drive down, not back.","back",
-  {i:5,r:120,alt:"Assisted pull-up or any wide-grip pulldown machine."}),
-X("Dumbbell bench press",["3x8-10","5x4-6","4x8-10","4x10-12"],
+  {i:5,r:120,alt:"Assisted pull-up - same job, and it is still in your history. Or any wide-grip pulldown machine."}),
+X("Dumbbell bench press",["4x8-10","5x4-6","4x8-10","4x10-12"],
   "ONE dumbbell, not both added. Two 12 kg dumbbells = enter 12.",
   "Neutral or slightly angled grip. Lower to chest level under control.","chest",
   {i:2,r:120,alt:"Machine chest press or barbell bench."}),
-X("Seated cable row",["3x10-12","4x6-8","4x8-12","3x12-15"],
-  "The number on the weight stack.",
-  "Chest tall, no rocking. Pause one second at the body.","back",
-  {i:5,r:100,alt:"Chest-supported machine row."}),
 X("Seated leg curl",["3x12-15","3x8-10","4x10-12","3x15-20"],
   "The number on the weight stack.",
   "Three full seconds on the way back down.","legs",
@@ -243,10 +241,6 @@ X("Neutral-grip shoulder press",["3x10-12","4x6-8","4x8-12","3x12-15"],
   "ONE dumbbell. Machine: the stack number.",
   "Seated with back support. Stop just short of lockout.","shoulders",
   {i:2,r:100,alt:"Machine shoulder press."}),
-X("Incline dumbbell curl",["2x10-12","3x8-10","4x8-12","3x12-15"],
-  "ONE dumbbell, not both.",
-  "Bench at 45 degrees, arms hanging behind the body.","biceps",
-  {i:2,r:75,alt:"Standing dumbbell curl."}),
 X("Triceps rope pushdown",["3x12-15","3x10-12","4x10-12","3x15-20"],
   "The number on the cable stack.",
   "Elbows pinned to the ribs. Spread the rope apart at the bottom and hold for a beat.","triceps",
@@ -254,18 +248,13 @@ X("Triceps rope pushdown",["3x12-15","3x10-12","4x10-12","3x15-20"],
 X("Standing calf raise",["3x12-15","4x8-10","4x12-15","3x15-20"],
   "Machine: the stack. Holding a dumbbell: that dumbbell. Bodyweight: leave empty.",
   "All the way down for a deep stretch, two seconds at the top. No bouncing.","calves",
-  {i:5,r:60,fin:true,alt:"Calf raise on a step holding a dumbbell."}),
-X("Dead bug",["3x10/side","3x12/side","3x12/side","3x15/side"],
-  "Bodyweight - leave the kg box empty.",
-  "Lower back pressed flat into the floor the whole time.","core",
-  {bw:true,r:60,side:true,fin:true,alt:"Plank, 30-45 seconds."})]},
+  {i:5,r:60,fin:true,alt:"Calf raise on a step holding a dumbbell."})]},
 
-{n:"Day B",s:"hinge + horizontal pull",
+{n:"Day B",s:"hinge, row, incline press",
  wu:["5 minutes on the bike, rower or incline walk.",
      "10 bodyweight hip hinges, 10 glute bridges, 10 band pull-aparts.",
      "Romanian deadlift: two ramp-up sets at about half and three quarters of your working weight."],
- x:[
-X("Romanian deadlift",["3x8-10","5x5-6","4x8-10","4x10-12"],
+ x:[X("Romanian deadlift",["3x8-10","5x5-6","4x8-10","4x10-12"],
   "Barbell: total INCLUDING the 20 kg bar. Dumbbells: ONE dumbbell.",
   "Hips BACK, not bending forward. Stop at mid-shin. Never take this one to failure.","legs",
   {i:5,r:180,bb:true,alt:"Dumbbell RDL or a back extension holding a plate."}),
@@ -273,41 +262,32 @@ X("Barbell / chest-supported row",["4x8-12","5x5-8","4x8-12","4x10-15"],
   "Barbell: total with the bar. Dumbbells: ONE. Machine: the stack.",
   "Torso around 45 degrees, pull to the belly, no heaving with the lower back.","back",
   {i:2.5,r:120,bb:true,alt:"Seated cable row or a T-bar row."}),
-X("Incline dumbbell press",["3x10-12","4x6-8","4x8-12","4x12-15"],
+X("Incline dumbbell press",["4x10-12","4x6-8","4x8-12","4x12-15"],
   "ONE dumbbell, not both.",
   "Bench at 30 degrees, no steeper, or it turns into a shoulder press.","chest",
   {i:2,r:120,alt:"Incline machine press."}),
-X("Assisted pull-up",["3x8-12","4x5-8","4x6-10","3xAMRAP"],
-  "The ASSISTANCE weight - LOWER means harder. Unassisted: leave empty.",
-  "Full hang at the bottom, chin over the bar. Add weight in a belt once 8 clean bodyweight reps are easy.","back",
-  {i:5,r:120,inv:true,alt:"Lat pulldown at a weight you can only do 8 times."}),
 X("Bulgarian split squat",["3x8-10/side","3x8/side","4x10-12/side","3x12-15/side"],
   "ONE dumbbell. Bodyweight: leave empty.",
   "Rear foot on a bench, torso upright, weight through the front heel.","legs",
   {i:2,r:100,side:true,alt:"Walking lunge or a step-up."}),
 X("Face pull",["3x15-20","3x15-20","4x15-20","3x20-25"],
   "The number on the cable stack.",
-  "Rope to the forehead, elbows high, thumbs back. This one keeps your shoulders healthy.","back",
+  "Rope to the forehead, elbows high, thumbs back. This one keeps your shoulders healthy.","shoulders",
   {i:5,r:75,alt:"Reverse pec-deck or rear-delt fly."}),
-X("Hammer curl",["2x12","3x8-10","4x10-12","3x12-15"],
+X("Hammer curl",["3x12","3x8-10","4x10-12","3x12-15"],
   "ONE dumbbell, not both.",
   "Neutral grip throughout. No swinging - if the hips move, the weight is too heavy.","biceps",
   {i:2,r:75,alt:"Rope cable curl."}),
 X("Overhead triceps extension",["3x12-15","3x10-12","4x12-15","3x15-20"],
   "Cable: the stack. One dumbbell held in both hands: that dumbbell.",
   "Elbows point forward and stay there. Get a full stretch behind the head - that is the whole point.","triceps",
-  {i:5,r:75,alt:"Seated dumbbell overhead extension."}),
-X("Pallof press",["3x12/side","3x12/side","3x15/side","3x15/side"],
-  "The number on the cable stack.",
-  "Resist the cable pulling you sideways. Do not rotate.","core",
-  {i:2.5,r:60,side:true,fin:true,alt:"Side plank, 30 seconds each side."})]},
+  {i:5,r:75,alt:"Seated dumbbell overhead extension."})]},
 
-{n:"Day C",s:"unilateral legs + back detail",
+{n:"Day C",s:"machines, delts and arms",
  wu:["5 minutes easy cardio.",
      "10 bodyweight squats, 10 leg swings each leg, 10 pull-aparts.",
      "Leg press: one ramp-up set at about half your working weight."],
- x:[
-X("Leg press",["3x12-15","4x8-10","4x10-12","4x15-20"],
+ x:[X("Leg press",["3x12-15","4x8-10","4x10-12","4x15-20"],
   "Total plates loaded on the sled.",
   "Feet mid-platform. Never lock the knees out at the top.","legs",
   {i:10,r:150,alt:"Hack squat or goblet squat."}),
@@ -315,14 +295,10 @@ X("Single-arm dumbbell row",["4x10-12/side","4x6-8/side","4x8-12/side","4x12-15/
   "The one dumbbell you are rowing. Reps are per side.",
   "Flat back. Row toward the hip, not the armpit.","back",
   {i:2,r:100,side:true,alt:"Chest-supported dumbbell row."}),
-X("Machine chest press",["3x10-12","4x8-10","4x10-12","4x12-15"],
+X("Machine chest press",["4x10-12","4x8-10","4x10-12","4x12-15"],
   "The number on the weight stack.",
   "Let the chest stretch fully at the bottom, do not cut it short.","chest",
   {i:5,r:110,alt:"Dumbbell bench press."}),
-X("Straight-arm lat pulldown",["3x12-15","3x10-12","4x12-15","3x15-20"],
-  "The number on the cable stack.",
-  "Arms straight the whole rep. Pure lat work - you should feel it under the armpit.","back",
-  {i:5,r:75,alt:"Dumbbell pullover."}),
 X("45 degree back extension",["3x12-15","3x10-12","4x12-15","3x15-20"],
   "The plate you hold. Bodyweight: leave empty.",
   "Round up slowly, squeeze the glutes, stop at straight. Do not hyperextend.","back",
@@ -331,7 +307,7 @@ X("Cable lateral raise",["3x12-15","3x12-15","4x12-15","4x15-20"],
   "The cable stack, for one arm.",
   "Lead with the elbow, stop at shoulder height. Light weight beats heavy swinging here.","shoulders",
   {i:2.5,r:70,side:true,alt:"Dumbbell lateral raise."}),
-X("Cable biceps curl",["2x12-15","3x10-12","4x10-12","3x15-20"],
+X("Cable biceps curl",["3x12-15","3x10-12","4x10-12","3x15-20"],
   "The number on the cable stack.",
   "Constant tension. Elbows still, do not let them drift forward.","biceps",
   {i:5,r:70,alt:"EZ-bar curl."}),
@@ -342,11 +318,7 @@ X("Close-grip bench / skullcrusher",["3x10-12","4x6-8","4x8-12","3x12-15"],
 X("Seated calf raise",["3x15-20","3x12-15","4x15-20","3x20-25"],
   "The weight on the machine, plates or stack.",
   "Deep stretch at the bottom, two-second squeeze at the top. This one hits the soleus.","calves",
-  {i:5,r:60,fin:true,alt:"Standing calf raise."}),
-X("Hanging knee raise",["3x12","3x15","3x15","3xAMRAP"],
-  "Bodyweight: leave empty. Dumbbell between the feet: that weight.",
-  "Curl the pelvis up toward the ribs. No swinging.","core",
-  {bw:true,r:60,fin:true,alt:"Lying leg raise or a cable crunch."})]}];
+  {i:5,r:60,fin:true,alt:"Standing calf raise."})]}];
 
 /* your first logged Day A, kept so a fresh device is not empty */
 var SEED={date:START_DEFAULT+864e5,day:"Day A",block:0,bw:"87",week:1,entries:[
@@ -417,6 +389,8 @@ function minR(e){var b=null,i;for(i=0;i<e.sets.length;i++){var r=parseInt(e.sets
 
 function meta(nm){var i,j;for(i=0;i<PLAN.length;i++)for(j=0;j<PLAN[i].x.length;j++)
   if(PLAN[i].x[j].n===nm)return PLAN[i].x[j];return null;}
+function musOf(nm){var m=meta(nm);return m?m.m:(RETIRED[nm]||null);}
+function colOf(nm){var g=musOf(nm);return g?MUS[g]:"#8A949E";}
 function allEx(){var m={},i,j;for(i=0;i<db.sessions.length;i++)
   for(j=0;j<db.sessions[i].entries.length;j++){var e=db.sessions[i].entries[j];
     if(!m[e.name])m[e.name]=[];m[e.name].push({d:db.sessions[i].date,e:e});}return m;}
@@ -815,13 +789,22 @@ function vCoach(){
     '<li>If a joint hurts - not the muscle, the joint - stop that exercise and use the Swap button.</li>'+
     '<li>Control the way down. Two seconds down, one up, on everything.</li></ul></div>';
 
-  h+='<div class="card"><h3>What changed in this version</h3><ul>'+
-    '<li><b>Triceps on all three days</b> - pushdown, overhead, close-grip. Your arms were only getting biceps work.</li>'+
-    '<li><b>Calves on A and C.</b> They were missing entirely.</li>'+
-    '<li><b>Week counter and automatic deloads</b> every sixth week.</li>'+
-    '<li><b>A prescription on every exercise</b> - the weight and reps for today, worked out from your own history.</li>'+
-    '<li><b>Rest timer, RIR, plate maths, warm-up ramps, PR alerts.</b></li>'+
-    '<li>The keyboard no longer closes when you move between boxes.</li></ul></div>';
+  h+='<div class="card"><h3>Why the plan got shorter</h3>'+
+    '<p>It was 87 sets a week over 29 exercises, and it was lopsided: 27 sets for your back against 9 for your chest. Both ends of that were a problem.</p><ul>'+
+    '<li><b>Chest 9 &rarr; 12 sets.</b> Under about 10 sets a week is where people start losing chest while dieting. It was the only muscle you had sitting under that line. The extra set went onto the presses you already do, because adding a set costs two minutes and adding an exercise costs six.</li>'+
+    '<li><b>Back 27 &rarr; 15 sets.</b> Past roughly 20 sets a week the extra work stops paying for itself and just eats recovery. You were doing three back exercises every single session. Now it is one big pull a day.</li>'+
+    '<li><b>Shoulders 6 &rarr; 9 sets.</b> Nothing was added - face pulls were always a rear-delt exercise being counted as back, which hid the shortfall.</li>'+
+    '<li><b>Core out of the gym.</b> Nine sets a week of dead bugs and Pallof presses is the easiest thing to do on your floor at home and the worst use of paid gym time.</li></ul>'+
+    '<p>Total: <b>72 sets over 22 exercises</b>, about 17 percent less work and roughly a quarter of an hour off each session. Every muscle now sits inside the 12 to 20 range the research points at, instead of two of them sitting outside it in opposite directions.</p>'+
+    '<p>Your history is untouched. The dropped exercises keep every number you ever logged, and the ones you liked are still one tap away under Swap.</p></div>';
+
+  h+='<div class="card"><h3>Keeping it under an hour</h3>'+
+    '<p>Seven exercises is about 55 to 65 minutes done properly. If you are running late, in this order:</p><ul>'+
+    '<li><b>Pair the last two.</b> Triceps and calves, or triceps and curls - one set of each back to back, then rest once. Saves eight minutes and costs nothing, because they do not compete for the same muscle.</li>'+
+    '<li><b>Drop the finishers.</b> Calves are marked as such. They matter least.</li>'+
+    '<li><b>Never cut the first two.</b> The first two exercises of each day are the ones the whole block is built on. Two exercises done properly beats seven done in a rush.</li></ul>'+
+    '<p>Do not cut the rest between sets to save time - short rest costs you reps, and reps are the thing you are trying to add.</p></div>';
+
   return h;}
 
 /* ============================================================
@@ -869,8 +852,8 @@ function vStats(){
   /* weekly sets per muscle against the bands */
   var mv={},i2,j2,k2;
   for(i2=0;i2<S.length;i2++){if(S[i2].date<ago)continue;
-    for(j2=0;j2<S[i2].entries.length;j2++){var mm=meta(S[i2].entries[j2].name);if(!mm)continue;
-      mv[mm.m]=(mv[mm.m]||0)+S[i2].entries[j2].sets.length;}}
+    for(j2=0;j2<S[i2].entries.length;j2++){var mg=musOf(S[i2].entries[j2].name);if(!mg)continue;
+      mv[mg]=(mv[mg]||0)+S[i2].entries[j2].sets.length;}}
   var ord=["back","legs","chest","shoulders","triceps","biceps","calves","core"],rows="";
   for(i2=0;i2<ord.length;i2++){var g=ord[i2],n2=mv[g]||0,bd=BAND[g],pct=Math.min(100,n2/(bd[1]*1.2)*100);
     var st=n2<bd[0]?"lo":(n2>bd[1]?"hi":"ok");
@@ -893,8 +876,8 @@ function vStats(){
   /* split of all sets ever */
   var mv2={},mt=0;
   for(i=0;i<S.length;i++)for(j=0;j<S[i].entries.length;j++){
-    var m3=meta(S[i].entries[j].name);if(!m3)continue;
-    mv2[m3.m]=(mv2[m3.m]||0)+S[i].entries[j].sets.length;mt+=S[i].entries[j].sets.length;}
+    var g3=musOf(S[i].entries[j].name);if(!g3)continue;
+    mv2[g3]=(mv2[g3]||0)+S[i].entries[j].sets.length;mt+=S[i].entries[j].sets.length;}
   var b1="",lg2="";
   for(i=0;i<ord.length;i++){var g2=ord[i],pc=mt?(mv2[g2]||0)/mt*100:0;
     if(pc>0){b1+='<i style="width:'+pc.toFixed(1)+'%;background:'+MUS[g2]+'"></i>';
@@ -908,7 +891,7 @@ function vStats(){
   for(kk in m2)names.push(kk);names.sort();
   var er2="";
   for(i=0;i<names.length;i++){
-    var hh=m2[names[i]],mm2=meta(names[i]),col=mm2?MUS[mm2.m]:"#8A949E",inv=mm2&&mm2.inv;
+    var hh=m2[names[i]],mm2=meta(names[i]),col=colOf(names[i]),inv=mm2&&mm2.inv;
     var e1=hh[0].e,e2=hh[hh.length-1].e,r1=orm(e1),r2=orm(e2),ser=[];
     for(j=0;j<hh.length;j++)ser.push(inv?totR(hh[j].e):(orm(hh[j].e)||totR(hh[j].e)));
     var ch,cls="",q;
@@ -981,9 +964,9 @@ function vHistory(){
       (s.dur?" &middot; "+s.dur+" min":"")+'</div></div>'+
       '<div class="rw" style="flex:none"><button class="mn" style="flex:none;padding:6px 10px" data-edit="'+i+'">Edit</button>'+
       '<button class="mn" style="flex:none;padding:6px 10px" data-del="'+i+'">Delete</button></div></div>';
-    for(j=0;j<s.entries.length;j++){var e=s.entries[j],mm=meta(e.name);
+    for(j=0;j<s.entries.length;j++){var e=s.entries[j];
       h+='<div class="hr" data-hist="'+esc(e.name)+'"><span>'+
-        '<span class="mdot" style="background:'+(mm?MUS[mm.m]:"#8A949E")+'"></span>'+esc(e.name)+'</span><span class="num">'+
+        '<span class="mdot" style="background:'+colOf(e.name)+'"></span>'+esc(e.name)+'</span><span class="num">'+
         (wo(e)?esc(wo(e))+" kg&nbsp;&nbsp;":"")+esc(rp(e))+'</span></div>';}
     h+='</div>';}
   return h;}
