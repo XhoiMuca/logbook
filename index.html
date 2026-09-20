@@ -75,6 +75,7 @@ main{padding:14px}
 .xb{background:none;border:1px solid #2E3740;border-radius:7px;color:#5C666F;font-size:15px;padding:10px 0}
 .ft{display:flex;gap:7px;margin-top:4px;flex-wrap:wrap}
 .mn{flex:1;background:none;border:1px solid #2E3740;border-radius:8px;color:#8A949E;font-size:12.5px;font-weight:600;padding:10px;min-width:74px}
+a.mn{display:block;text-align:center;text-decoration:none;border-color:#4A3C1C;color:#E0B03A}
 .mn.go{border-color:#4A3C1C;color:#E0B03A}
 .hint{margin-top:10px;font-size:12.5px;padding:9px 11px;border-radius:8px;line-height:1.45}
 .hint.up{background:#20321F;color:#9BD07E;border:1px solid #33513F}
@@ -188,7 +189,8 @@ var BLOCKS=[
   {n:"Strength",   w:[15,26],intent:"Heavier, fewer reps, longer rest. The goal is the number on the bar, not the burn."},
   {n:"Growth",     w:[27,39],intent:"The most sets of the year. Moderate weight, close to failure, eat enough to build."},
   {n:"Definition", w:[40,52],intent:"High reps, short rest, keep every kilo of muscle you built while you lean out."}];
-var RETIRED={"Dead bug":"core","Hanging knee raise":"core"};
+var RETIRED={"Dead bug":"core","Hanging knee raise":"core","Romanian deadlift":"legs",
+  "Bulgarian split squat":"legs"};
 var MUS={legs:"#E0B03A",back:"#57A97C",chest:"#6FA8C7",shoulders:"#C6613C",biceps:"#A98BC7",triceps:"#C77FA8",calves:"#7E9A55",core:"#7A848D"};
 var MUSN={legs:"legs",back:"back",chest:"chest",shoulders:"shoulders",biceps:"biceps",triceps:"triceps",calves:"calves",core:"core"};
 /* weekly working-set bands that the literature broadly agrees on */
@@ -259,11 +261,11 @@ X("Standing calf raise",["3x12-15","4x8-10","4x12-15","3x15-20"],
 {n:"Day B",s:"hinge + horizontal pull",
  wu:["5 minutes on the bike, rower or incline walk.",
      "10 bodyweight hip hinges, 10 glute bridges, 10 band pull-aparts.",
-     "Romanian deadlift: two ramp-up sets at about half and three quarters of your working weight."],
- x:[X("Romanian deadlift",["3x8-10","5x5-6","4x8-10","4x10-12"],
-  "Barbell: total INCLUDING the 20 kg bar. Dumbbells: ONE dumbbell.",
-  "Hips BACK, not bending forward. Stop at mid-shin. Never take this one to failure.","legs",
-  {i:5,r:180,bb:true,alt:"Dumbbell RDL or a back extension holding a plate."}),
+     "Cable pull-through: one light set of 10 first, purely to feel the hips going back before you load it."],
+ x:[X("Cable pull-through",["3x12-15","4x10-12","4x12-15","3x15-20"],
+  "The number on the cable stack.",
+  "Rope between the legs, cable behind you, facing away. Let the rope pull your hips BACK - that is the hinge doing itself, which is the whole reason this is here instead of a Romanian deadlift. Knees soft and still, back flat, finish by squeezing the glutes, not by leaning back.","legs",
+  {i:5,r:120,alt:"Romanian deadlift once the hinge feels automatic, or a machine hip thrust."}),
 X("Barbell / chest-supported row",["4x8-12","5x5-8","4x8-12","4x10-15"],
   "Barbell: total with the bar. Dumbbells: ONE. Machine: the stack.",
   "Torso around 45 degrees, pull to the belly, no heaving with the lower back.","back",
@@ -276,10 +278,10 @@ X("Assisted pull-up",["3x8-12","4x5-8","4x6-10","3xAMRAP"],
   "The ASSISTANCE weight - LOWER means harder. Unassisted: leave empty.",
   "Full hang at the bottom, chin over the bar. Add weight in a belt once 8 clean bodyweight reps are easy.","back",
   {i:5,r:120,inv:true,alt:"Lat pulldown at a weight you can only do 8 times."}),
-X("Bulgarian split squat",["3x8-10/side","3x8/side","4x10-12/side","3x12-15/side"],
-  "ONE dumbbell. Bodyweight: leave empty.",
-  "Rear foot on a bench, torso upright, weight through the front heel.","legs",
-  {i:2,r:100,side:true,alt:"Walking lunge or a step-up."}),
+X("Leg extension",["3x12-15","4x10-12","4x12-15","3x15-20"],
+  "The number on the weight stack.",
+  "Sit back in the pad, knees lined up with the machine pivot. Straighten fully, pause a beat at the top, three seconds on the way down. No balance needed and nothing to get wrong - that is why it is here.","legs",
+  {i:5,r:90,alt:"Split squat with BOTH feet on the floor, holding the rack for balance, once you want the harder version back. Bulgarian split squat after that."}),
 X("Face pull",["3x15-20","3x15-20","4x15-20","3x20-25"],
   "The number on the cable stack.",
   "Rope to the forehead, elbows high, thumbs back. This one keeps your shoulders healthy.","shoulders",
@@ -413,6 +415,15 @@ function odd(nm,w,r){
 function minR(e){var b=null,i;for(i=0;i<e.sets.length;i++){var r=parseInt(e.sets[i].r,10)||0;
   if(r>0&&(b===null||r<b))b=r;}return b;}
 
+/* search terms for the exercises whose names are ambiguous on their own */
+var DEMO={"Back squat / leg press":"barbell back squat","Barbell / chest-supported row":"barbell bent over row",
+ "Close-grip bench / skullcrusher":"close grip bench press","Cable fly / pec deck":"cable chest fly",
+ "Neutral-grip shoulder press":"neutral grip dumbbell shoulder press","Lat pulldown, wide grip":"wide grip lat pulldown",
+ "Single-arm dumbbell row":"one arm dumbbell row","Straight-arm lat pulldown":"straight arm pulldown",
+ "Low-to-high cable fly":"low to high cable fly","Triceps rope pushdown":"tricep rope pushdown",
+ "Overhead triceps extension":"overhead cable tricep extension","45 degree back extension":"45 degree back extension hyperextension"};
+function demoURL(nm){
+  return "https://www.youtube.com/results?search_query="+encodeURIComponent((DEMO[nm]||nm)+" proper form");}
 function meta(nm){var i,j;for(i=0;i<PLAN.length;i++)for(j=0;j<PLAN[i].x.length;j++)
   if(PLAN[i].x[j].n===nm)return PLAN[i].x[j];return null;}
 function musOf(nm){var m=meta(nm);return m?m.m:(RETIRED[nm]||null);}
@@ -729,7 +740,8 @@ function vDay(){
           ?(ex.bw?"Every set hit the top of the range. Next time slow the lowering to three seconds, or add a rep."
             :"Every set hit the top of the range. Next time the "+(ex.inv?"assistance drops":"weight goes up")+" "+fmt(ex.i)+" kg and the reps start again at "+P.lo+".")
           :"Good. Same weight next time, one more rep on the sets that fell short.")+'</div>';}
-      h+='<div class="ft"><button class="mn" data-copy="'+k+'">Copy last</button>'+
+      h+='<div class="ft"><a class="mn" href="'+esc(demoURL(ex.n))+'" target="_blank" rel="noopener">&#9654; How</a>'+
+         '<button class="mn" data-copy="'+k+'">Copy last</button>'+
          '<button class="mn go" data-rest="'+k+'">Rest '+rs+'s</button>'+
          '<button class="mn" data-hist="'+esc(ex.n)+'">Trend</button>'+
          '<button class="mn" data-swap="'+k+'">Swap</button>'+
@@ -787,7 +799,7 @@ function vCoach(){
     '<li><b>1-2</b> - where almost every set should live.</li>'+
     '<li><b>3-4</b> - too easy.</li></ul>'+
     '<p>Log it on two sets or more and it drives the plan: average <b>3 or more</b> and the weight goes up next session instead of waiting for the reps to creep up, which is how most people spend a month lifting too light. Average <b>0 with your reps going backwards</b> and you get told to hold the weight and leave one in the tank - that is fatigue, not effort, and grinding it makes it worse.</p>'+
-    '<p>Big lifts like the squat and the Romanian deadlift: stay at 2. Cables and machines: 0 to 1 is safe.</p></div>';
+    '<p>Big lifts like the squat: stay at 2. Cables and machines: 0 to 1 is safe.</p></div>';
 
   h+='<div class="card"><h3>Rest between sets</h3>'+
     '<p>The timer is on the exercise - tap <b>Rest</b> and it counts down in the bar with a beep at zero. In this block:</p><ul>'+
@@ -810,7 +822,7 @@ function vCoach(){
     '<p>If a session feels terrible, do the first two exercises properly and bin the finishers. A short honest session beats a skipped one, and the log will show you it was one bad day, not a trend.</p></div>';
 
   h+='<div class="card"><h3>Form rules that keep you training</h3><ul>'+
-    '<li>Never take the Romanian deadlift or the squat to failure. Leave two reps.</li>'+
+    '<li>Never take the squat to failure. Leave two reps.</li>'+
     '<li>Full range or lighter weight. A half rep is a wasted set.</li>'+
     '<li>If a joint hurts - not the muscle, the joint - stop that exercise and use the Swap button.</li>'+
     '<li>Control the way down. Two seconds down, one up, on everything.</li></ul></div>';
