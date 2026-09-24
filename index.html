@@ -190,7 +190,7 @@ var BLOCKS=[
   {n:"Growth",     w:[27,39],intent:"The most sets of the year. Moderate weight, close to failure, eat enough to build."},
   {n:"Definition", w:[40,52],intent:"High reps, short rest, keep every kilo of muscle you built while you lean out."}];
 var RETIRED={"Dead bug":"core","Hanging knee raise":"core","Romanian deadlift":"legs",
-  "Bulgarian split squat":"legs"};
+  "Bulgarian split squat":"legs","Cable pull-through":"legs"};
 var MUS={legs:"#E0B03A",back:"#57A97C",chest:"#6FA8C7",shoulders:"#C6613C",biceps:"#A98BC7",triceps:"#C77FA8",calves:"#7E9A55",core:"#7A848D"};
 var MUSN={legs:"legs",back:"back",chest:"chest",shoulders:"shoulders",biceps:"biceps",triceps:"triceps",calves:"calves",core:"core"};
 /* weekly working-set bands that the literature broadly agrees on */
@@ -261,11 +261,11 @@ X("Standing calf raise",["3x12-15","4x8-10","4x12-15","3x15-20"],
 {n:"Day B",s:"hinge + horizontal pull",
  wu:["5 minutes on the bike, rower or incline walk.",
      "10 bodyweight hip hinges, 10 glute bridges, 10 band pull-aparts.",
-     "Cable pull-through: one light set of 10 first, purely to feel the hips going back before you load it."],
- x:[X("Cable pull-through",["3x12-15","4x10-12","4x12-15","3x15-20"],
-  "The number on the cable stack.",
-  "Rope between the legs, cable behind you, facing away. Let the rope pull your hips BACK - that is the hinge doing itself, which is the whole reason this is here instead of a Romanian deadlift. Knees soft and still, back flat, finish by squeezing the glutes, not by leaning back.","legs",
-  {i:5,r:120,alt:"Romanian deadlift once the hinge feels automatic, or a machine hip thrust."}),
+     "Reverse lunge: 5 bodyweight reps each leg first, to find your balance before you pick anything up."],
+ x:[X("Reverse lunge",["3x10-12/side","3x8-10/side","4x10-12/side","3x12-15/side"],
+  "ONE dumbbell in each hand - log the weight of ONE. Bodyweight: leave empty.",
+  "Step BACKWARDS, not forwards - it is far easier to balance and much kinder on the knee. Back knee lightly to the floor, push through the front heel to stand. Torso upright. If you wobble, hold the rack with one hand and carry the dumbbell in the other.","legs",
+  {i:2,r:100,side:true,alt:"Hold the rack for balance, or a static split squat with both feet planted. Walking lunge if you are steady."}),
 X("Barbell / chest-supported row",["4x8-12","5x5-8","4x8-12","4x10-15"],
   "Barbell: total with the bar. Dumbbells: ONE. Machine: the stack.",
   "Torso around 45 degrees, pull to the belly, no heaving with the lower back.","back",
