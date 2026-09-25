@@ -362,7 +362,7 @@ var SEED={date:START_DEFAULT+864e5,day:"Day A",block:0,bw:"87",week:1,entries:[
 /* ============================================================
    3. state
    ============================================================ */
-var db={v:2,sessions:[SEED],block:0,bwAuto:true,bw:"87",steps:"",draft:{},tab:0,start:START_DEFAULT,notes:""};
+var db={v:2,sessions:[SEED],block:0,bwAuto:true,bw:"87",steps:"",weights:{},draft:{},tab:0,start:START_DEFAULT};
 var tab=0, open=-1, undoRec=null, mode="starting", note="", setFn=null, getFn=null, exView=null;
 var editS=-1, editBuf=null, editNew=false;
 var rest={end:0,len:0,ex:""}, tick=null, sesStart=0, ac=null, saveT=null;
@@ -378,10 +378,27 @@ function tst(m,cls){var t=E("tst");t.innerHTML=m;t.className="tst on"+(cls?" "+c
 function ns(t){return parseInt(String(t).split("x")[0],10)||3;}
 function rlo(t){var m=String(t).match(/x\s*(\d+)/);return m?+m[1]:null;}
 function rhi(t){var m=String(t).match(/x\s*(?:(\d+)-)?(\d+)/);return m?+m[2]:null;}
+function num(v){return parseFloat(String(v===undefined||v===null?"":v).replace(",","."))||0;}
 function fmt(n){if(n===null||n===undefined||isNaN(n))return "";
   return (Math.round(n*100)/100).toString();}
 function rnd(v,i){i=i||2.5;return Math.round(v/i)*i;}
 function d0(t){var d=new Date(t);d.setHours(0,0,0,0);return d.getTime();}
+function iso(t){var d=new Date(t);
+  return d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2);}
+function isoBack(k){var p=String(k).split("-");return new Date(+p[0],+p[1]-1,+p[2],12,0,0).getTime();}
+/* every weigh-in, oldest first: [{x: ms, y: kg, k: "2026-09-25"}] */
+function weighIns(){
+  var out=[],k;
+  for(k in db.weights){if(!db.weights[k])continue;
+    out.push({x:isoBack(k),y:num(db.weights[k]),k:k});}
+  out.sort(function(a,b){return a.x-b.x;});return out;}
+function logWeight(k,v){
+  if(!db.weights)db.weights={};
+  if(String(v).trim()==="")delete db.weights[k]; else db.weights[k]=String(v).trim();}
+function avgLast(n,off){
+  var w=weighIns(),end=w.length-(off||0),start=Math.max(0,end-n),i,s2=0,c=0;
+  for(i=start;i<end;i++){if(w[i].y>0){s2+=w[i].y;c++;}}
+  return c?s2/c:null;}
 function week(){return Math.max(1,Math.floor((d0(Date.now())-d0(db.start||START_DEFAULT))/864e5/7)+1);}
 function deload(w){return w%6===0;}
 function blockFor(w){var i;for(i=0;i<BLOCKS.length;i++)if(w>=BLOCKS[i].w[0]&&w<=BLOCKS[i].w[1])return i;return 3;}
@@ -391,12 +408,12 @@ function wo(e){var w=[],i;for(i=0;i<e.sets.length;i++)if(e.sets[i].w)w.push(e.se
   if(!w.length)return "";for(i=1;i<w.length;i++)if(w[i]!==w[0])return w.join("/");return w[0];}
 function rp(e){var a=[],i;for(i=0;i<e.sets.length;i++)a.push(e.sets[i].r);return a.join(" / ");}
 function vol(e){var v=0,i;for(i=0;i<e.sets.length;i++)
-  v+=(parseFloat(e.sets[i].w)||0)*(parseInt(e.sets[i].r,10)||0);return v;}
+  v+=num(e.sets[i].w)*(parseInt(e.sets[i].r,10)||0);return v;}
 function orm(e){var b=0,i;for(i=0;i<e.sets.length;i++){
-  var w=parseFloat(e.sets[i].w)||0,r=parseInt(e.sets[i].r,10)||0;
+  var w=num(e.sets[i].w),r=parseInt(e.sets[i].r,10)||0;
   if(w>0&&r>0){var x=w*(1+r/30);if(x>b)b=x;}}return b;}
-function topW(e){var b=0,i;for(i=0;i<e.sets.length;i++){var w=parseFloat(e.sets[i].w)||0;if(w>b)b=w;}return b;}
-function loW(e){var b=null,i;for(i=0;i<e.sets.length;i++){var w=parseFloat(e.sets[i].w)||0;
+function topW(e){var b=0,i;for(i=0;i<e.sets.length;i++){var w=num(e.sets[i].w);if(w>b)b=w;}return b;}
+function loW(e){var b=null,i;for(i=0;i<e.sets.length;i++){var w=num(e.sets[i].w);
   if(w>0&&(b===null||w<b))b=w;}return b;}
 function totR(e){var t=0,i;for(i=0;i<e.sets.length;i++)t+=parseInt(e.sets[i].r,10)||0;return t;}
 /* average reps-in-reserve for a session, null unless at least two sets carry one */
@@ -405,7 +422,7 @@ function avgRIR(e){var s=0,n=0,i;for(i=0;i<e.sets.length;i++){var q=e.sets[i].q;
   return n>=2?s/n:null;}
 /* does this look like a fat finger rather than a set */
 function odd(nm,w,r){
-  var W=parseFloat(w)||0,R=parseInt(r,10)||0,h=hist(nm),best=0,i;
+  var W=num(w),R=parseInt(r,10)||0,h=hist(nm),best=0,i;
   for(i=0;i<h.length;i++){var t=topW(h[i].e);if(t>best)best=t;}
   if(r!==""&&R>100)return R+" reps? Check that before it becomes your record.";
   if(W>500)return fmt(W)+" kg looks like a slip.";
@@ -773,7 +790,7 @@ function syncEx(k){
    11. coach view
    ============================================================ */
 function vCoach(){
-  var wk=week(),b=blk(),B=BLOCKS[b],dl=deload(wk),bwv=parseFloat(db.bw)||0;
+  var wk=week(),b=blk(),B=BLOCKS[b],dl=deload(wk),bwv=num(db.bw);
   E("ttl").textContent="Coach";E("sb").textContent="week "+wk+" of 52";
   var wl=wk-BLOCKS[b].w[0]+1,wt=BLOCKS[b].w[1]-BLOCKS[b].w[0]+1;
   var h=status();
@@ -848,12 +865,33 @@ function vCoach(){
 /* ============================================================
    12. stats
    ============================================================ */
+function weighCard(){
+  var today=iso(Date.now()),w=weighIns(),i,rows="";
+  var cur=(db.weights&&db.weights[today])||"";
+  var a7=avgLast(7,0),p7=avgLast(7,7),rate=(a7!==null&&p7!==null)?(a7-p7):null;
+  for(i=w.length-1;i>=0&&i>w.length-8;i--){
+    var dd=new Date(w[i].x),lbl=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][dd.getDay()]+" "+dd.getDate()+"/"+(dd.getMonth()+1);
+    rows+='<div class="hr"><span>'+esc(lbl)+(w[i].k===today?" &middot; today":"")+'</span>'+
+      '<span class="num">'+esc(db.weights[w[i].k])+' kg <button class="xb" style="padding:2px 7px;margin-left:8px" data-wdel="'+esc(w[i].k)+'">&times;</button></span></div>';}
+  return '<div class="card" style="border-color:#33513F"><h3>Daily weigh-in <small>same time, every morning</small></h3>'+
+    '<p>First thing, after the toilet, before you eat or drink. Weighing every day and judging the average beats weighing on gym days only.</p>'+
+    '<div class="rw"><input id="wIn" class="num" inputmode="decimal" placeholder="kg today" value="'+esc(cur)+'" style="flex:2;font-size:19px;font-weight:600;text-align:center">'+
+    '<button class="mn go" style="flex:1" data-act="wsave">'+(cur?"Update":"Save")+'</button></div>'+
+    (w.length?'<div class="kpis" style="margin-top:11px;margin-bottom:0">'+
+      '<div class="kpi"><div class="v num">'+(a7!==null?a7.toFixed(1):"-")+'</div><div class="k">7-day average</div>'+
+        '<div class="d nu">'+w.length+' weigh-in'+(w.length===1?"":"s")+' logged</div></div>'+
+      '<div class="kpi"><div class="v num">'+(rate!==null?(rate>0?"+":"")+rate.toFixed(2):"-")+'</div><div class="k">kg per week</div>'+
+        (rate!==null?'<div class="d'+(rate>-0.15?" dn":"")+'">'+(rate<=-0.4&&rate>=-0.65?"on target":(rate>-0.4?"slower than target":"quicker than target"))+'</div>'
+                    :'<div class="d nu">needs 2 weeks</div>')+'</div></div>':"")+
+    (rows?'<div style="margin-top:9px">'+rows+'</div>':'<p style="margin-top:9px">Nothing logged yet. Put this morning&rsquo;s number in and come back tomorrow.</p>')+
+    '</div>';}
+
 function vStats(){
   E("ttl").textContent="Stats";E("sb").textContent="how the year is going";
   var S=db.sessions,i,j,wk=week();
-  if(!S.length)return status()+'<div class="mt">File a session and the analysis appears here.</div>';
+  if(!S.length)return status()+weighCard()+'<div class="mt">File a session and the analysis appears here.</div>';
   var tot=0;for(i=0;i<S.length;i++)for(j=0;j<S[i].entries.length;j++)tot+=vol(S[i].entries[j]);
-  var bws=[];for(i=0;i<S.length;i++)if(S[i].bw)bws.push({x:S[i].date,y:parseFloat(S[i].bw)});
+  var bws=weighIns();
   var bwd=bws.length>1?(bws[bws.length-1].y-bws[0].y):null;
   var lastV=0,prevV=0;
   for(j=0;j<S[S.length-1].entries.length;j++)lastV+=vol(S[S.length-1].entries[j]);
@@ -861,7 +899,7 @@ function vStats(){
   var vd=prevV?Math.round((lastV-prevV)/prevV*100):null;
   var w7=0,ago=Date.now()-6048e5;for(i=0;i<S.length;i++)if(S[i].date>=ago)w7++;
 
-  var h=status()+'<div class="kpis">'+
+  var h=status()+weighCard()+'<div class="kpis">'+
     '<div class="kpi"><div class="v num">'+S.length+'</div><div class="k">sessions filed</div>'+
       '<div class="d'+(w7>=3?"":" nu")+'">'+w7+' in the last 7 days</div></div>'+
     '<div class="kpi"><div class="v num">'+wk+'</div><div class="k">week of the year</div>'+
@@ -1134,7 +1172,7 @@ function paint(){
    15. one listener for clicks, so a button can never go dead
    ============================================================ */
 document.addEventListener("click",function(ev){
-  var el=ev.target,a=null,k,A=["tab","open","clr","copy","wipe","del","hist","swap","rest","edit","eclr","act"];
+  var el=ev.target,a=null,k,A=["tab","open","clr","copy","wipe","del","hist","swap","rest","edit","eclr","wdel","act"];
   for(k=0;k<6&&el;k++){
     if(el.getAttribute){var i;
       for(i=0;i<A.length;i++)if(el.getAttribute("data-"+A[i])!==null){a=[A[i],el.getAttribute("data-"+A[i])];break;}
@@ -1166,6 +1204,7 @@ function handle(kind,val){
     for(j=0;j<n;j++){var s=pv.sets[j]||pv.sets[pv.sets.length-1];
       db.draft[nm].push({w:(s&&s.w)||"",r:(s&&s.r)||"",q:""});}
     paint();save();tst("Filled with last time - now beat it");return;}
+  if(kind==="wdel"){logWeight(val,"");paint();save();tst("Removed");return;}
   if(kind==="edit"){editS=+val;editBuf=JSON.parse(JSON.stringify(db.sessions[+val]));
     paint();window.scrollTo(0,0);return;}
   if(kind==="eclr"){if(!editBuf)return;var pe=val.split("_");
@@ -1183,6 +1222,13 @@ function handle(kind,val){
       if(when>Date.now()){tst("That date is in the future");return;}
       editBuf=blankSession(+E("pday").value,when);editNew=true;editS=-1;
       paint();window.scrollTo(0,0);return;}
+    if(val==="wsave"){
+      var v=E("wIn").value.trim();
+      if(!v){tst("Put a number in first");return;}
+      if(num(v)<25||num(v)>350){tst("That does not look like a bodyweight");return;}
+      logWeight(iso(Date.now()),v);
+      db.bw=v;E("bw").value=v;
+      paint();save();tst("Logged "+esc(v)+" kg for today");return;}
     if(val==="ecancel"){editS=-1;editBuf=null;editNew=false;paint();tst("Nothing changed");return;}
     if(val==="esave"){
       if(!editBuf||(editS<0&&!editNew))return;
@@ -1280,14 +1326,18 @@ document.addEventListener("change",function(ev){
   var ex=PLAN[tab].x[+p[0]],d=db.draft[ex.n][+p[1]];
   startRest(restFor(ex,blk()),ex.n);
   if(!ex.bw&&!ex.inv&&d.w&&d.r&&!odd(ex.n,d.w,d.r)){
-    var o=(parseFloat(d.w)||0)*(1+(parseInt(d.r,10)||0)/30),best=bestOrm(ex.n,false);
+    var o=num(d.w)*(1+(parseInt(d.r,10)||0)/30),best=bestOrm(ex.n,false);
     if(best>0&&o>best*1.005&&!d.pr){d.pr=1;
       tst("Personal record on "+esc(ex.n)+"<br>"+fmt(d.w)+" kg x "+esc(d.r)+" beats everything you have logged.","pr");}}
   autoFile();
 },false);
 
 E("blk").onchange=function(){db.block=blk();db.blockAuto=false;paint();save();};
-E("bw").onchange=function(){db.bw=E("bw").value;save();};
+E("bw").onchange=function(){
+  db.bw=E("bw").value;
+  if(db.bw.trim()){logWeight(iso(Date.now()),db.bw);tst("Weigh-in saved for today");}
+  if(tab==="s")paint();
+  save();};
 E("stp").onchange=function(){db.steps=E("stp").value;save();};
 
 /* ============================================================
@@ -1305,6 +1355,13 @@ function migrate(d){
       if(s.steps===undefined)s.steps="";
       for(j=0;j<s.entries.length;j++)for(k=0;k<s.entries[j].sets.length;k++)
         if(s.entries[j].sets[k].q===undefined)s.entries[j].sets[k].q="";}}
+  if(!d.weights){d.weights={};
+    var wi,ws;
+    for(wi=0;wi<d.sessions.length;wi++){ws=d.sessions[wi];
+      if(ws.bw&&String(ws.bw).trim()){
+        var dt=new Date(ws.date),key=dt.getFullYear()+"-"+("0"+(dt.getMonth()+1)).slice(-2)+"-"+("0"+dt.getDate()).slice(-2);
+        if(!d.weights[key])d.weights[key]=String(ws.bw).trim();}}
+    lg("migrate","seeded "+Object.keys(d.weights).length+" weigh-ins from session bodyweights");}
   if(!d.draft)d.draft={};
   if(!d.start)d.start=START_DEFAULT;
   d.sessions.sort(function(a,b){return a.date-b.date;});
