@@ -706,6 +706,7 @@ function vDay(){
   var p=PLAN[tab],b=blk(),wk=week(),dl=deload(wk),h=status(),k,j;
   E("ttl").textContent=p.n;E("sb").textContent=p.s;
 
+  h+=deloadWarn();
   if(dl)h+='<div class="rx deload" style="margin:0 0 11px"><b>Week '+wk+' is a deload</b>'+
     'Everything below is already scaled down. Same exercises, about two thirds of the weight, one set fewer, and you stop well short of failure. Skipping the deload is how people stall in week 8.</div>';
 
@@ -870,6 +871,94 @@ function vCoach(){
 /* ============================================================
    12. stats
    ============================================================ */
+/* ---------- week-on-week comparison: feeds the report card and the deload check ---------- */
+function weekOf(t){return Math.max(1,Math.floor((d0(t)-d0(db.start||START_DEFAULT))/864e5/7)+1);}
+function sessionsIn(w){var o=[],i;
+  for(i=0;i<db.sessions.length;i++)if(weekOf(db.sessions[i].date)===w)o.push(db.sessions[i]);
+  return o;}
+/* last time each exercise was trained that week */
+function lastPerEx(ss){var m={},i,j;
+  for(i=0;i<ss.length;i++)for(j=0;j<ss[i].entries.length;j++)m[ss[i].entries[j].name]=ss[i].entries[j];
+  return m;}
+function bwAvgIn(w){var wi=weighIns(),i,s2=0,c=0;
+  for(i=0;i<wi.length;i++)if(weekOf(wi[i].x)===w&&wi[i].y>0){s2+=wi[i].y;c++;}
+  return c?s2/c:null;}
+
+function report(w){
+  var cur=sessionsIn(w),prev=sessionsIn(w-1);
+  var a=lastPerEx(prev),b=lastPerEx(cur),n,up=[],flat=[],down=[],tv=0,i,j;
+  for(i=0;i<cur.length;i++)for(j=0;j<cur[i].entries.length;j++)tv+=vol(cur[i].entries[j]);
+  for(n in b){
+    if(!a[n])continue;
+    var ex=meta(n),inv=ex&&ex.inv;
+    var ta=topW(a[n]),tb=topW(b[n]),ra=totR(a[n]),rb=totR(b[n]);
+    var va=vol(a[n]),vb=vol(b[n]),better,worse;
+    if(inv){                       /* less assistance is progress */
+      better=(tb<ta)||(tb===ta&&rb>ra); worse=(tb>ta)||(tb===ta&&rb<ra);}
+    else if(va===0&&vb===0){       /* bodyweight: reps are all there is */
+      better=rb>ra; worse=rb<ra;}
+    else{                          /* 1% either side, so noise does not count */
+      better=vb>va*1.01; worse=vb<va*0.99;}
+    if(better)up.push(n); else if(worse)down.push(n); else flat.push(n);}
+  /* how hard was the week, from the RIR actually logged */
+  var q=[],rr;
+  for(i=0;i<cur.length;i++)for(j=0;j<cur[i].entries.length;j++){
+    var st=cur[i].entries[j].sets,k;
+    for(k=0;k<st.length;k++)if(st[k].q!==""&&st[k].q!==undefined)q.push(parseInt(st[k].q,10)||0);}
+  rr=q.length>=4?q.reduce(function(x,y){return x+y;},0)/q.length:null;
+
+  var bwc=bwAvgIn(w),bwp=bwAvgIn(w-1);
+  /* deload check: only with enough of a week to judge, and not in a scheduled one */
+  var dl=false,why="";
+  if(cur.length>=2&&!deload(w)&&(up.length+flat.length+down.length)>=4){
+    var comp=up.length+flat.length+down.length;
+    if(down.length>=3&&down.length>=comp*0.35){
+      dl=true;why=down.length+" of "+comp+" lifts went backwards this week";}
+    else if(down.length>=2&&down.length>=comp*0.25&&rr!==null&&rr<=1){
+      dl=true;why=down.length+" lifts went backwards and you were at or near failure on most sets";}}
+  return {w:w,sessions:cur.length,vol:tv,up:up,flat:flat,down:down,rir:rr,
+    bw:bwc,bwPrev:bwp,deload:dl,why:why,comparable:(up.length+flat.length+down.length)};}
+
+function reportCard(){
+  var w=week(),R=report(w);
+  if(!R.sessions){ w=w-1; if(w<1)return ""; R=report(w); if(!R.sessions)return ""; }
+  var tgt=3,h="";
+  h+='<div class="card"><h3>Week '+R.w+' so far <small>'+(R.w===week()?"this week":"last week")+'</small></h3>';
+  h+='<div class="kpis" style="margin-bottom:9px">'+
+    '<div class="kpi"><div class="v num">'+R.sessions+'/'+tgt+'</div><div class="k">sessions</div>'+
+      '<div class="d'+(R.sessions>=tgt?"":" nu")+'">'+(R.sessions>=tgt?"target hit":(tgt-R.sessions)+" to go")+'</div></div>'+
+    '<div class="kpi"><div class="v num">'+(R.vol>=1000?(R.vol/1000).toFixed(1)+"t":Math.round(R.vol)+"kg")+'</div>'+
+      '<div class="k">volume lifted</div><div class="d nu">'+(R.rir!==null?"avg "+R.rir.toFixed(1)+" left in tank":"no RIR logged")+'</div></div></div>';
+  if(R.comparable){
+    h+='<div class="vr" style="border:none;padding-top:0"><div class="vt"><span>against week '+(R.w-1)+'</span>'+
+      '<b><span class="ok">'+R.up.length+' up</span> &middot; <span class="nu">'+R.flat.length+' flat</span> &middot; '+
+      '<span class="'+(R.down.length?"hi":"nu")+'">'+R.down.length+' down</span></b></div></div>';
+    if(R.down.length)h+='<p style="margin-top:7px">Went backwards: <b style="color:#DE9A6A">'+esc(R.down.join(", "))+'</b></p>';
+  } else h+='<p>Not enough history yet to compare against last week.</p>';
+  if(R.bw!==null&&R.bwPrev!==null){
+    var d2=R.bw-R.bwPrev;
+    h+='<p>Bodyweight averaged <b>'+R.bw.toFixed(1)+' kg</b>, '+
+      (Math.abs(d2)<0.05?"level with":(d2<0?"<b class=\'ok\'>"+d2.toFixed(2)+" kg</b> on":"<b class=\'hi\'>+"+d2.toFixed(2)+" kg</b> on"))+' last week.</p>';}
+  else if(R.bw!==null)h+='<p>Bodyweight averaged <b>'+R.bw.toFixed(1)+' kg</b>. Another week of daily weigh-ins and this gets a rate.</p>';
+
+  /* the one thing to change */
+  var fix="";
+  if(R.deload)fix="Take a deload week now - see the warning above.";
+  else if(R.sessions<tgt)fix="Get the third session in. Consistency beats everything else in this block.";
+  else if(R.rir!==null&&R.rir>=2.5)fix="You are leaving too much in the tank. Add weight rather than waiting for the reps to climb.";
+  else if(R.down.length)fix="Repeat last week's numbers on "+esc(R.down[0])+" before pushing it again.";
+  else if(R.up.length)fix="Nothing to fix. Keep doing exactly this.";
+  if(fix)h+='<p style="margin-top:9px;color:#E0B03A"><b>Next week:</b> '+fix+'</p>';
+  return h+'</div>';}
+
+function deloadWarn(){
+  var R=report(week());
+  if(!R.deload)return "";
+  return '<div class="rx stall" style="margin:0 0 11px"><b>Your body is asking for a deload</b>'+
+    esc(R.why)+'. That is fatigue, not weakness - you have been training hard enough that recovery has fallen behind, '+
+    'and in a calorie deficit it falls behind faster. Do this week at about two thirds of the weight, one set fewer, '+
+    'stopping four reps short of hard. You will come back past where you stalled.</div>';}
+
 function weighCard(){
   var today=iso(Date.now()),w=weighIns(),i,rows="";
   var cur=(db.weights&&db.weights[today])||"";
@@ -904,7 +993,7 @@ function vStats(){
   var vd=prevV?Math.round((lastV-prevV)/prevV*100):null;
   var w7=0,ago=Date.now()-6048e5;for(i=0;i<S.length;i++)if(S[i].date>=ago)w7++;
 
-  var h=status()+weighCard()+'<div class="kpis">'+
+  var h=status()+weighCard()+reportCard()+'<div class="kpis">'+
     '<div class="kpi"><div class="v num">'+S.length+'</div><div class="k">sessions filed</div>'+
       '<div class="d'+(w7>=3?"":" nu")+'">'+w7+' in the last 7 days</div></div>'+
     '<div class="kpi"><div class="v num">'+wk+'</div><div class="k">week of the year</div>'+
